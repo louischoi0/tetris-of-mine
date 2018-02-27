@@ -83,7 +83,7 @@ def update_pos_block(blc) :
 
 class block(object):
 
-    def __init__(self, name,map):
+    def __init__(self,name,map):
         self.maxHeight = 0
         self.map = map
         self.X = X_START
@@ -167,6 +167,7 @@ class block(object):
     def get_inv_right_list(self) :
         return InvestigateRightPos[self.name][self.trans]
 class Render(object) :
+
     def __init__(self, master) :
         self.end = False
         self.map = [[0 for row in range (Y_MAX)] for row in range(X_MAX)]
@@ -180,6 +181,7 @@ class Render(object) :
         self.create_blocks(idx,self.map)
         self.draw_falling_bloc()
         self.maxHeight = 0
+
     def set_failling_block(self, bloc) :
         self.falling = bloc
     def inv_falling_area(self, x , y) :
@@ -426,6 +428,22 @@ def possible_alloc_from_xy(blc, pmap, x , y) :
         if i == 3 and not uphold :
             return False
     return True
+
+def find_all_possible_pos_by_idx(idx ,pmap , maxY):
+    posAllList = list()
+    name = BlockIndex[idx]
+    blc = block(name,pmap)
+    for t in range(0, FormCount[name]) :
+        blc.set_trans(t)
+        startX = MaxMinX[name][t][0]
+        endX = MaxMinX[name][t][1]
+        for y in range(0 , maxY + 1) :
+            for x in range(startX, endX + 1) :
+                if possible_alloc_from_xy(blc,pmap,x,y) :
+                    elem = blc.final_position()
+                    posAllList.append(elem)
+    return posAllList
+
 def find_all_possible_pos(blc, pmap ,maxY) :
     posAllList = list()
     name = blc.get_name()

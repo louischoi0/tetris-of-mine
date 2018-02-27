@@ -33,8 +33,6 @@ def get_max_score_position(pmap, plist, weight,bias) :
         print(summ)
     return sList.index(max(sList))
 
-
-
 blc = base.block("stick",map0)
 aList = base.find_all_possible_pos(blc , map0 , 3)
 render_case(map0, aList)

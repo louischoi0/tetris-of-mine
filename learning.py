@@ -1,32 +1,74 @@
-import base
 import tensorflow as tf
+import numpy as np
+import base as tetris
 
-class advisor :
-    def get_all_possble(self, blc, map) :
-        result = ()
-        for i in range(X_MAX) :
-            result.append(base.fall_block_straight())
+def get_all_possble(self, blc, map) :
+    result = ()
+    for i in range(X_MAX) :
+        result.append(base.fall_block_straight())
+
+NodeX = 10
+NodeY = 23
+Form = 11
+
+X_ = tf.placeholder("float",[NodeY, NodeX])
+Y_ = tf.placeholder("float",[NodeY, NodeX])
+
+sess = tf.Session()
+
+Map = np.array(np.zeros(shape=[3,NodeY,NodeX,1], dtype=np.float32))
+MapReshaped = Map[0].reshape([NodeY, NodeX])
+
+def rmove(mapp, plist) :
+    for i in plist :
+        mapp[i[0]][i[1]] = 1
 
 
-Node = base.X_VISUAL_MAX * base.Y_VISUAL_MAX
-NodeX = base.X_VISUAL_MAX
-NodeY = base.Y_VISUAL_MAX
+class Actor :
+    cost = None
+    denseUnit = NodeX
 
-def weight_variable(shape) :
-    initial = tf.truncated_normal(shape, stddev = 0.1)
-    return tf.Variable(initial)
+    def __init__ (self):
+        self.fullMap = tf.Variable(tf.ones_like(Map, dtype=tf.float32))
+        self.inMap = tf.placeholder("float", [3, NodeY, NodeX,1] )
+        self.mapWeight = tf.Variable(tf.random_normal([3,NodeY,NodeX,1], stddev=0.5, dtype=tf.float32))
+        self.Bias = tf.Variable(tf.ones([3,NodeY,NodeX,1], dtype=tf.float32))
+        self.convWeight = tf.Variable(tf.random_normal([3,3,1,1], stddev=0.5, dtype=tf.float32))
+        self.convhMap = tf.Variable(tf.zeros([3,NodeY,NodeX,1], dtype=tf.float32))
 
-BlockShape = 5
+        self.verticalWeight = tf.Variable(tf.random_normal([ NodeY, 1, 1, Form]))
+        self.denseWeight = tf.Variable(tf.random_normal([NodeX, NodeY*NodeX], stddev=0.5, dtype=tf.float32))
+        self.build_ops()
 
-x = tf.placeholder(tf.flaot32, shape=[Node])
-y_ = tf.placeholder(tf.flaot32, shape=[NodeX])
+    def step(self,blc) :
+        MapReshaped = Map.reshape([NodeY,NodeX])
+        plist = tetris.find_all_possible_pos_by_idx(blc, MapReshaped, NodeY)
 
-Weight =  weight_variable([])
-Bias = tf.Varialble(tf.zeros[Node,BlockShape,NodeX])
+    def make_kernel(self,count) :
+        return [ tf.Variable(tf.random_normal([1,NodeY, NodeX, 1], stddev=0.5, dtype=tf.float32)) for x in range(0, count) ]
 
-initRate = tf.matmul((x, Weight) + Bias)
+    def build_ops(self) :
+        init = tf.global_variables_initializer()
+        sess.run(init)
 
-Kernel = weight_variable([3,3])
-ConvMap = tf.nn.conv2d(initRate, Kernel, strides=[1, 1, 1, 1], padding='SAME')
+        ops = tf.multiply(self.inMap, self.mapWeight) + self.Bias
+        ops = tf.nn.conv2d(ops, self.convWeight, strides=[1,1,1,1], padding="SAME")
+        ops = tf.tanh(ops)
 
-print(ConvMap)
+        ops = tf.nn.conv2d(ops, self.verticalWeight, strides=[1,1,1,1], padding="VALID")
+        cost = tf.reduce_sum(ops,3)
+        optimizer = tf.train.GradientDescentOptimizer(1)
+        train_op = optimizer.minimize(cost)
+
+        sess.run(cost, feed_dict={self.inMap:Map})
+        bval = tf.identity(cost)
+        for i in range(0, 10000) :
+            sess.run(train_op, feed_dict={self.inMap:Map})
+        aval = cost
+
+        update = aval - bval
+
+        print(sess.run(update, feed_dict={self.inMap:Map}))
+
+if __name__ == "__main__" :
+    advInst = Actor()
